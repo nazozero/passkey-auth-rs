@@ -2,7 +2,7 @@
 name        = "passkey-auth"
 version     = "0.1.3"
 edition     = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 license     = "MIT OR Apache-2.0"
 description = "Pure-Rust WebAuthn server library focused on passkeys (no openssl)."
 repository  = "https://github.com/marirs/passkey-auth-rs"
