@@ -10,9 +10,9 @@
 //! careful here.
 
 use ed25519_dalek::{Signature as EdSig, Verifier as _, VerifyingKey as EdKey};
+use p256::ecdsa::signature::Verifier as _;
 use p256::ecdsa::{Signature as EsSig, VerifyingKey as EsKey};
-use p256::elliptic_curve::sec1::FromEncodedPoint;
-use p256::{EncodedPoint, PublicKey};
+use p256::PublicKey;
 
 use crate::cose::CoseKey;
 use crate::error::{Error, Result};
@@ -34,9 +34,7 @@ fn verify_es256(x: &[u8; 32], y: &[u8; 32], msg: &[u8], sig: &[u8]) -> Result<()
     sec1[0] = 0x04;
     sec1[1..33].copy_from_slice(x);
     sec1[33..65].copy_from_slice(y);
-    let point = EncodedPoint::from_bytes(sec1).map_err(|_| Error::BadSignature)?;
-    let pk = PublicKey::from_encoded_point(&point);
-    let pk = Option::<PublicKey>::from(pk).ok_or(Error::BadSignature)?;
+    let pk = PublicKey::from_sec1_bytes(&sec1).map_err(|_| Error::BadSignature)?;
     let vk = EsKey::from(&pk);
 
     // WebAuthn ES256 signatures are DER-encoded ECDSA. p256 has a
@@ -69,7 +67,7 @@ fn verify_ed25519(key: &[u8; 32], msg: &[u8], sig: &[u8]) -> Result<()> {
 mod tests {
     use super::*;
     use ed25519_dalek::{Signer as _, SigningKey};
-    use p256::ecdsa::SigningKey as EsSigningKey;
+    use p256::ecdsa::{signature::Signer as _, SigningKey as EsSigningKey};
     use rand::RngCore;
 
     #[test]
@@ -91,9 +89,9 @@ mod tests {
 
     #[test]
     fn es256_round_trip() {
-        let sk = EsSigningKey::random(&mut rand::thread_rng());
+        let sk = EsSigningKey::from_slice(&[1u8; 32]).unwrap();
         let vk = sk.verifying_key();
-        let pt = vk.to_encoded_point(false);
+        let pt = vk.to_sec1_point(false);
         let xs = pt.x().expect("x coord");
         let ys = pt.y().expect("y coord");
         let mut x = [0u8; 32];
